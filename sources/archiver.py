@@ -48,10 +48,30 @@ logging.basicConfig(level=logging.DEBUG,
 
 ################################################################################
 # Functions
-
 def main(input_path_name:str, output_path_name:str):
     """
         This is the main processing function
+    """
+
+    try:
+        input_path, output_path = create_file_pathes(input_path_name, output_path_name)
+    except TypeError:
+        print("Input parameter error")
+        return -1
+
+    list_of_files = create_list_of_files(input_path)
+    list_of_files = filter_list_of_files_by_date(list_of_files, 5)
+    new_zip = archive_files(list_of_files, output_path)
+    archive_list = create_archive_file_list(new_zip)
+    create_archive_log_file(archive_list, output_path)
+    move_archived_files_to_trash(archive_list, input_path.anchor)
+
+    return 0
+
+
+def create_file_pathes(input_path_name:str, output_path_name:str) -> Path:
+    """
+        This function creates the input and output pathes
     """
     if not isinstance(input_path_name, str) or not isinstance(output_path_name, str):
         raise TypeError("Arguments are not strings")
@@ -67,14 +87,8 @@ def main(input_path_name:str, output_path_name:str):
     if not input_path.is_dir() or not output_path.is_dir():
         raise TypeError("Arguments are not pathes")
 
-    list_of_files = create_list_of_files(input_path)
-    list_of_files = filter_list_of_files_by_date(list_of_files, 5)
-    new_zip = archive_files(list_of_files, output_path)
-    archive_list = create_archive_file_list(new_zip)
-    create_archive_log_file(archive_list, output_path)
-    move_archived_files_to_trash(archive_list, input_path.anchor)
+    return input_path, output_path
 
-    return 0
 
 def archive_files(list_of_files:list, output_path:Path) -> zipfile.ZipFile:
     """ This function is zipping the folder and storing the archive
@@ -90,7 +104,7 @@ def archive_files(list_of_files:list, output_path:Path) -> zipfile.ZipFile:
 
     return archive
 
-def create_archive_file_list(zip_file:Path) -> list:
+def create_archive_file_list(zip_file:zipfile) -> list:
     """ This function returns a list of files in the archive
     """
     return zip_file.namelist()
@@ -108,7 +122,7 @@ def move_archived_files_to_trash(archive_list, anchor):
     """ This function moves the archived files from input to trash.
     """
     for elem in archive_list:
-        #send2trash.send2trash(f"{input_path.anchor}{elem}")
+        send2trash.send2trash(f"{anchor}{elem}")
         logging.debug("simulated move to trash: %s/%s", anchor, elem)
 
 def create_archive_name():
@@ -132,7 +146,7 @@ def create_list_of_files(dir_name:Path) -> list:
     return list_of_files
 
 def filter_list_of_files_by_date(list_of_files:list, delta_days:int) -> list:
-    """ This function filters the list of files according to date. 
+    """ This function filters the list of files according to date.
     """
     now = datetime.datetime.now()
     date_past = now - datetime.timedelta(days=delta_days)
@@ -145,11 +159,6 @@ def filter_list_of_files_by_date(list_of_files:list, delta_days:int) -> list:
 
     return list_of_files
 
-def test_func(delta_days:int):
-    now = datetime.datetime.now()
-    date_past = now - datetime.timedelta(days=delta_days)
-    print(f"Past: {date_past}")
-
 ################################################################################
 # Classes
 
@@ -158,5 +167,4 @@ def test_func(delta_days:int):
 if __name__ == "__main__":
     # execute only if run as a script
     print('--- foldarc script ---')
-    main(os.path.join(os.getcwd(), 'from'), os.path.join(os.getcwd(), 'to'))
-
+    main(os.path.join(os.getcwd(), 'from1'), os.path.join(os.getcwd(), 'to'))
